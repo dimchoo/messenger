@@ -1,7 +1,10 @@
 from argparse import ArgumentParser
+import json
 from socket import socket, AF_INET, SOCK_STREAM
 
 import yaml
+
+from protocol import is_request_valid, make_response
 
 
 parser = ArgumentParser()
@@ -41,11 +44,28 @@ try:
 
     while True:
         client_socket, client_address = server_socket.accept()
+
         print(f'Server was connected with {client_address[0]}:{client_address[1]}...')
-        client_byte_request = client_socket.recv(buffer_size)
-        print(f'Client sent request:\n{client_byte_request.decode()}')
-        client_socket.send(client_byte_request)
-        print(f'Server sent request:\n{client_byte_request.decode()}')
+
+        byte_request = client_socket.recv(buffer_size)
+
+        request = json.loads(byte_request.decode())
+
+        if is_request_valid(request):
+            action = request.get('action')
+
+            if action == 'echo':
+                try:
+                    print(f'Client sent message:\n{byte_request.decode()}')
+                    response = make_response(request, 200, request.get('data'))
+                except Exception as error:
+                    response = make_response(request, 500, error)
+            else:
+                response = make_response(request, 404, f'Not supported action: {action}')
+        else:
+            response = make_response(request, 400, 'Wrong request format')
+
+        client_socket.send(json.dumps(response).encode())
         client_socket.close()
 except KeyboardInterrupt:
     print('\nServer was shutdown.')
