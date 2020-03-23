@@ -1,4 +1,6 @@
 from argparse import ArgumentParser
+from datetime import datetime
+import json
 from socket import socket, AF_INET, SOCK_STREAM
 
 import yaml
@@ -31,10 +33,20 @@ client_socket.connect((host, port))
 
 print('Client was started...')
 
+action = input('Enter action: ')
 data = input('Enter data: ')
-client_socket.send(data.encode())
 
-print(f'Client sent data:\n{data}')
+request = {
+    'action': action,
+    'time': datetime.now().timestamp(),
+    'data': data
+}
+
+str_request = json.dumps(request)
+
+client_socket.send(str_request.encode())
+
+print(f'Client sent data:\n{str_request}')
 
 server_byte_response = client_socket.recv(buffer_size)
 
